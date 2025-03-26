@@ -1,0 +1,120 @@
+[project]
+name = "btc-backtest"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Krak3nDev", email = "bihichnazar@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "ccxt>=4.4.69",
+    "httpx>=0.28.1",
+    "pandas>=2.2.3",
+    "pyarrow>=19.0.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "ta>=0.11.0",
+    "tenacity>=9.0.0",
+    "vectorbt>=0.27.2",
+    "kaleido>=0.2.1"
+]
+
+[project.scripts]
+btc-backtest = "btc_backtest:main"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/btc_backtest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+lint = [
+    "mypy>=1.15.0",
+    "ruff>=0.11.2",
+]
+
+
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+target-version = "py311"
+
+
+[lint]
+select = ["E4", "E7", "E9", "F", "E501", "I"]
+ignore = []
+fixable = ["ALL"]
+
+[lint.isort]
+case-sensitive = true
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+
+exclude = [
+    "tests/",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+
+
+[tool.mypy]
+disallow_subclassing_any = false
+ignore_missing_imports = true
+disable_error_code = "import-untyped,misc"
+strict = true
+exclude = [
+    "\\.git",
+    "\\.venv",
+    "\\.idea",
+    "tests/",
+    "\\.cache",
+    "build",
+    "dist",
+    "scripts",
+]
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+
+
+
