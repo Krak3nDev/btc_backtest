@@ -8,7 +8,7 @@ from btc_backtest.core.binance.binance_client import PairsFetcher
 from btc_backtest.core.binance.cache_manager import load_checksums, CacheManager
 from btc_backtest.core.binance.fetcher import BinanceFetcher
 from btc_backtest.core.data_loader import BinanceDataLoader, save_aggregated_parquet
-
+3
 from btc_backtest.strategies.sma_cross import SmaCrossoverStrategy
 from btc_backtest.strategies.rsi_bollinger import RsiBollingerStrategy
 from btc_backtest.strategies.volume_spike_breakout import VolumeSpikeBreakoutStrategy
@@ -46,7 +46,6 @@ async def main() -> None:
         pairs_fetcher = PairsFetcher(client)
         top_100_btc = await pairs_fetcher.get_top_pairs(quote="BTC", limit=100)
 
-        # 2) Set up the BinanceFetcher
         fetcher = BinanceFetcher(client=client)
 
         # 3) Prepare cache-related functionality
