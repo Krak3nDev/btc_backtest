@@ -152,7 +152,3 @@ This strategy aims to catch momentum driven by heavy trading volume. However, in
 python src/btc_backtest/main.py
 ```
 (Once executed, results will appear in `results/`.)
-
----
-
-```
