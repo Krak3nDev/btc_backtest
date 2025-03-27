@@ -8,7 +8,7 @@ from btc_backtest.core.binance.binance_client import PairsFetcher
 from btc_backtest.core.binance.cache_manager import load_checksums, CacheManager
 from btc_backtest.core.binance.fetcher import BinanceFetcher
 from btc_backtest.core.data_loader import BinanceDataLoader, save_aggregated_parquet
-3
+
 from btc_backtest.strategies.sma_cross import SmaCrossoverStrategy
 from btc_backtest.strategies.rsi_bollinger import RsiBollingerStrategy
 from btc_backtest.strategies.volume_spike_breakout import VolumeSpikeBreakoutStrategy
@@ -112,8 +112,20 @@ async def main() -> None:
     backtester.plot_performance_heatmap(
         metric="sharpe_ratio",
         template="plotly_white",
-        range_color=(-10, 10),
+        range_color=(None, None),
         sort_symbols_by_mean=True,
+    )
+
+    backtester.generate_png_plots(
+        use_log_scale=True,  # logarithmic scale on capital curves
+        template="plotly_white",  # Plotly styling
+        sort_by_final=True,  # sort lines by final balance
+        top_bottom_n=5,  # visualize the 5 best and 5 worst pairs (for clarity)
+        heatmap_metrics=[
+            "sharpe_ratio",
+            "total_return",
+        ],  # build a heatmap for these metrics
+        heatmap_range=(-10, 10),  # color scale boundaries for the heatmap
     )
 
     # 13) (Optional) Generate an HTML report that includes the above charts

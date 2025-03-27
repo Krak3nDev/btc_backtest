@@ -1,7 +1,5 @@
-# project/core/backtester.py
-
 import os
-from typing import Any, Type, Dict, List, Tuple
+from typing import Any, Type
 
 import pandas as pd
 import plotly.express as px
@@ -26,16 +24,6 @@ class Backtester:
         strategies: list[tuple[Type[StrategyBase], dict[str, Any]]],
         results_dir: str = "results",
     ) -> None:
-        """
-        Initialize the Backtester.
-
-        Args:
-            data_dict (Dict[str, pd.DataFrame]): A mapping of symbol -> OHLCV DataFrame.
-            strategies (List[Tuple[Type[StrategyBase], Dict[str, Any]]]):
-                A list of tuples (StrategyClass, params_dict).
-                For example: [(SmaCrossoverStrategy, {"init_cash": 10_000}), ...].
-            results_dir (str): The directory to store results (metrics, screenshots).
-        """
         self.data_dict = data_dict
         self.strategies = strategies
         self.results_dir = results_dir
@@ -62,17 +50,13 @@ class Backtester:
                 strat_instance = strategy_cls(data=df.copy(), **params)
                 pf = strat_instance.run_backtest()
 
-                # Store Portfolio
                 self.all_portfolios[strategy_name][symbol] = pf
 
-                # Base metrics
                 base_metrics = strat_instance.get_metrics()
-                # Custom metrics
                 extra_metrics = compute_custom_metrics(pf)
-
                 merged_metrics = {
                     "symbol": symbol,
-                    **{f"{k}": v for k, v in base_metrics.items()},
+                    **base_metrics,
                     **extra_metrics,
                 }
                 self.all_metrics[strategy_name][symbol] = merged_metrics
@@ -114,8 +98,6 @@ class Backtester:
         You can limit lines to top_bottom_n and sort by final value for clarity.
         """
         for strategy_name, syms_dict in self.all_portfolios.items():
-
-            # Collect (symbol, equity_series, final_val)
             equity_data = []
             for symbol, pf in syms_dict.items():
                 series = pf.value()
@@ -125,11 +107,9 @@ class Backtester:
             if sort_by_final:
                 equity_data.sort(key=lambda x: x[2], reverse=True)
 
-            # Take top/bottom if needed
-            if top_bottom_n > 0 and len(equity_data) > 2*top_bottom_n:
+            if top_bottom_n > 0 and len(equity_data) > 2 * top_bottom_n:
                 equity_data = equity_data[:top_bottom_n] + equity_data[-top_bottom_n:]
 
-            # Build the figure
             fig = None
             for idx, (symbol, series, final_val) in enumerate(equity_data):
                 if idx == 0:
@@ -153,14 +133,13 @@ class Backtester:
                 fig.update_layout(
                     width=1000,
                     height=600,
-                    margin=dict(l=40, r=40, t=60, b=40),  # slightly bigger top margin
-                    title_x=0.5  # center title
+                    margin=dict(l=40, r=40, t=60, b=40),
+                    title_x=0.5
                 )
                 if use_log_scale:
                     fig.update_yaxes(type="log")
                     fig.update_layout(yaxis_title="Portfolio Value (log scale)")
 
-                # Save
                 if save_html:
                     html_file = os.path.join(
                         self.results_dir, "screenshots", f"{strategy_name}_equity.html"
@@ -176,7 +155,7 @@ class Backtester:
 
     def plot_performance_heatmap(
         self,
-        range_color: tuple[float, float],
+        range_color: tuple[float, float] = (None, None),
         metric: str = "sharpe_ratio",
         template: str = "plotly_white",
         sort_symbols_by_mean: bool = True,
@@ -184,13 +163,13 @@ class Backtester:
         """
         Plot a heatmap of the chosen metric across all strategies and symbols.
         You can clamp the color range and/or sort columns by average metric across strategies.
+        Set range_color=(None,None) for automatic color scaling.
         """
         strategies_list = list(self.all_metrics.keys())
         symbols_list = sorted(
             set().union(*[self.all_metrics[s].keys() for s in strategies_list])
         )
 
-        # Optionally sort columns by average metric value
         if sort_symbols_by_mean and symbols_list:
             symbol_mean = {}
             for sym in symbols_list:
@@ -203,7 +182,6 @@ class Backtester:
             # sort descending
             symbols_list.sort(key=lambda s: symbol_mean[s], reverse=True)
 
-        # Build matrix data
         data_for_heatmap = []
         for strategy_name in strategies_list:
             row = []
@@ -223,22 +201,21 @@ class Backtester:
             y=strategies_list,
             title=f"Heatmap: {metric}",
             template=template,
-            color_continuous_scale="RdBu_r",
-            width=1000,
-            height=600,
+            color_continuous_scale="Viridis",  # a different palette for clarity            width=1400,
+            height=900,
         )
-        # Adjust color range if given
+        # If the user explicitly specified a range_color, we limit the range
         if range_color[0] is not None and range_color[1] is not None:
             fig.update_traces(zmin=range_color[0], zmax=range_color[1])
 
         fig.update_layout(
-            margin=dict(l=40, r=40, t=60, b=80),  # more bottom margin
-            title_x=0.5  # center the title
+            margin=dict(l=40, r=40, t=60, b=120),
+            title_x=0.5
         )
-        # Place x-axis on top, rotate labels for readability
-        fig.update_xaxes(side="top", tickangle=-45)
+        # Return labels and decrease font size to reduce clutter
+        fig.update_xaxes(side="top", tickangle=45, tickfont=dict(size=8))
+        fig.update_yaxes(tickfont=dict(size=8))
 
-        # Save as PNG
         out_file = os.path.join(self.results_dir, "screenshots", f"heatmap_{metric}.png")
         pio.write_image(fig, out_file, format="png", scale=2)
         print(f"Heatmap saved: {out_file}")
@@ -278,3 +255,44 @@ class Backtester:
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(html_content)
         print(f"HTML report saved: {report_path}")
+
+    def generate_png_plots(
+        self,
+        use_log_scale: bool = True,
+        template: str = "plotly_white",
+        sort_by_final: bool = True,
+        top_bottom_n: int = 0,
+        heatmap_metrics: list[str] = None,
+        heatmap_range: tuple[float, float] = (None, None)
+    ) -> None:
+        """
+        Generate PNG plots for:
+          1) Equity curves of all strategies (optionally limited/sorted).
+          2) Heatmaps for a list of specified metrics.
+
+        Args:
+            use_log_scale (bool): Whether to use log scale for equity curves.
+            template (str): Plotly template for styling.
+            sort_by_final (bool): Sort equity lines by final portfolio value.
+            top_bottom_n (int): If >0, show top and bottom N lines only (for clarity).
+            heatmap_metrics (List[str]): Which metrics to build heatmaps for.
+            heatmap_range (tuple[float, float]): Color range for heatmaps (None=None=auto).
+        """
+        self.plot_equity_curves(
+            use_log_scale=use_log_scale,
+            template=template,
+            sort_by_final=sort_by_final,
+            top_bottom_n=top_bottom_n,
+            save_html=False
+        )
+
+        if heatmap_metrics is None:
+            heatmap_metrics = ["sharpe_ratio"]
+
+        for m in heatmap_metrics:
+            self.plot_performance_heatmap(
+                range_color=heatmap_range,
+                metric=m,
+                template=template,
+                sort_symbols_by_mean=True
+            )
